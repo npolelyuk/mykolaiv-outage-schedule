@@ -83,6 +83,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val currentQueueKey = combine(selectedGroup, selectedSubGroup) { g, sg -> "$g.$sg" }
 
+    // 4. ПРОВЕРКА ОБНОВЛЕНИЙ
+    private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
+    val updateInfo = _updateInfo.asStateFlow()
+
+    private val _isCheckingUpdate = MutableStateFlow(false)
+    val isCheckingUpdate = _isCheckingUpdate.asStateFlow()
+
+    private val _updateCheckResult = MutableStateFlow<String?>(null)
+    val updateCheckResult = _updateCheckResult.asStateFlow()
+
     init {
         val prefs = getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
 
@@ -115,16 +125,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Фоновая проверка обновлений при старте приложения
         checkForUpdates(isManual = false)
     }
-
-    // 4. ПРОВЕРКА ОБНОВЛЕНИЙ
-    private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
-    val updateInfo = _updateInfo.asStateFlow()
-
-    private val _isCheckingUpdate = MutableStateFlow(false)
-    val isCheckingUpdate = _isCheckingUpdate.asStateFlow()
-
-    private val _updateCheckResult = MutableStateFlow<String?>(null)
-    val updateCheckResult = _updateCheckResult.asStateFlow()
 
     fun checkForUpdates(isManual: Boolean = false) {
         viewModelScope.launch {

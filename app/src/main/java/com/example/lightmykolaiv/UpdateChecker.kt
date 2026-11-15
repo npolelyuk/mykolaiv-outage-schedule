@@ -1,11 +1,13 @@
 package com.example.lightmykolaiv
 
+import android.util.Log
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Headers
 
 data class GithubRelease(
     @SerializedName("tag_name") val tagName: String,
@@ -29,6 +31,7 @@ data class AppUpdateInfo(
 )
 
 interface GithubApiService {
+    @Headers("User-Agent: LightMykolaiv-App")
     @GET("repos/npolelyuk/mykolaiv-outage-schedule/releases/latest")
     suspend fun getLatestRelease(): GithubRelease
 }
@@ -45,6 +48,7 @@ object UpdateChecker {
     suspend fun checkForUpdate(currentVersion: String): AppUpdateInfo? = withContext(Dispatchers.IO) {
         try {
             val release = api.getLatestRelease()
+            Log.d("UpdateChecker", "Latest release: ${release.tagName}")
             val latestClean = cleanVersion(release.tagName)
             val currentClean = cleanVersion(currentVersion)
 
@@ -61,6 +65,7 @@ object UpdateChecker {
                 null
             }
         } catch (e: Exception) {
+            Log.e("UpdateChecker", "Failed to check update", e)
             null
         }
     }

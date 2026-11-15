@@ -314,7 +314,7 @@ fun PowerScheduleApp(viewModel: MainViewModel = viewModel()) {
         }
 
         // Парящий остров (Навигация)
-        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp)) {
+        Box(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp)) {
             FloatingNavBar(
                 onRefresh = { viewModel.refreshSchedule() },
                 onOpenLinks = { showLinksSheet = true },
@@ -1751,7 +1751,14 @@ fun SettingsSheet(viewModel: MainViewModel, isDark: Boolean, onDismiss: () -> Un
         containerColor = if (isDark) Color(0xFF1B1E29) else Color.White,
         dragHandle = { BottomSheetDefaults.DragHandle(color = Color.LightGray) }
     ) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 48.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 32.dp)
+        ) {
             // Заголовок
             Row(
                 verticalAlignment = Alignment.CenterVertically,
