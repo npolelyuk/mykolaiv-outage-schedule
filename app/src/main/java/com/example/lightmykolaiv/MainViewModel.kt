@@ -111,6 +111,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         
         // Принудительно обновляем виджет при старте, чтобы он синхронизировался с текущим состоянием
         updateWidget()
+
+        // Фоновая проверка обновлений при старте приложения
+        checkForUpdates(isManual = false)
+    }
+
+    // 4. ПРОВЕРКА ОБНОВЛЕНИЙ
+    private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
+    val updateInfo = _updateInfo.asStateFlow()
+
+    private val _isCheckingUpdate = MutableStateFlow(false)
+    val isCheckingUpdate = _isCheckingUpdate.asStateFlow()
+
+    private val _updateCheckResult = MutableStateFlow<String?>(null)
+    val updateCheckResult = _updateCheckResult.asStateFlow()
+
+    fun checkForUpdates(isManual: Boolean = false) {
+        viewModelScope.launch {
+            _isCheckingUpdate.value = true
+            _updateCheckResult.value = null
+            try {
+                val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+                _updateInfo.value = update
+                if (isManual) {
+                    if (update == null) {
+                        _updateCheckResult.value = "Встановлено найновішу версію (v${BuildConfig.VERSION_NAME})"
+                    }
+                }
+            } catch (e: Exception) {
+                if (isManual) {
+                    _updateCheckResult.value = "Не вдалося перевірити оновлення"
+                }
+            } finally {
+                _isCheckingUpdate.value = false
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        _updateInfo.value = null
+    }
+
+    fun clearUpdateCheckResult() {
+        _updateCheckResult.value = null
     }
 
     // Вспомогательная функция для чистоты кода

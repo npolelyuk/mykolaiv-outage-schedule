@@ -332,6 +332,16 @@ fun PowerScheduleApp(viewModel: MainViewModel = viewModel()) {
         )
     }
 
+    // Диалог найденного обновления
+    val updateInfo by viewModel.updateInfo.collectAsState()
+    if (updateInfo != null) {
+        UpdateDialog(
+            updateInfo = updateInfo!!,
+            isDark = isDark,
+            onDismiss = { viewModel.dismissUpdate() }
+        )
+    }
+
     // Отображение меню настроек
     if (showSettings) {
         SettingsSheet(
@@ -1916,7 +1926,108 @@ fun SettingsSheet(viewModel: MainViewModel, isDark: Boolean, onDismiss: () -> Un
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
+
+            // Блок ОНОВЛЕННЯ ТА ВЕРСІЯ
+            Text("ОНОВЛЕННЯ ТА ВЕРСІЯ", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Spacer(Modifier.height(10.dp))
+
+            val isCheckingUpdate by viewModel.isCheckingUpdate.collectAsState()
+            val updateCheckResult by viewModel.updateCheckResult.collectAsState()
+            val settingsUpdateInfo by viewModel.updateInfo.collectAsState()
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "Версія додатку",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else Color.Black
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "v${BuildConfig.VERSION_NAME}",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.checkForUpdates(isManual = true) },
+                            enabled = !isCheckingUpdate,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFD54F),
+                                contentColor = Color.Black
+                            ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            if (isCheckingUpdate) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.Black
+                                )
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Перевірити", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    if (updateCheckResult != null) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = updateCheckResult!!,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDark) Color.White.copy(alpha = 0.85f) else Color.DarkGray
+                        )
+                    }
+
+                    if (settingsUpdateInfo != null) {
+                        Spacer(Modifier.height(12.dp))
+                        val uriHandler = LocalUriHandler.current
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF00B862).copy(alpha = 0.15f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Доступна версія ${settingsUpdateInfo!!.latestVersion}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00B862)
+                                )
+                                TextButton(
+                                    onClick = { uriHandler.openUri(settingsUpdateInfo!!.downloadUrl) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Оновити", color = Color(0xFF00B862), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(28.dp))
 
             // Кнопка ЗБЕРЕГТИ
             Button(
@@ -1960,4 +2071,95 @@ fun NotificationSlider(
         )
     }
 }
+
+@Composable
+fun UpdateDialog(
+    updateInfo: AppUpdateInfo,
+    isDark: Boolean,
+    onDismiss: () -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = if (isDark) Color(0xFF1B1E29) else Color.White,
+        icon = {
+            Surface(
+                color = Color(0xFFFFD54F),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = Color.Black)
+                }
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "Доступне оновлення!",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = if (isDark) Color.White else Color.Black
+                )
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    color = Color(0xFF00B862).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(100.dp)
+                ) {
+                    Text(
+                        updateInfo.latestVersion,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00B862)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (updateInfo.releaseNotes.isNotBlank()) {
+                    Text(
+                        "Що нового:",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White.copy(alpha = 0.9f) else Color.Black
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        updateInfo.releaseNotes,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 6
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+                Text(
+                    "Бажаєте завантажити та встановити нову версію?",
+                    fontSize = 12.5.sp,
+                    color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Gray
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    uriHandler.openUri(updateInfo.downloadUrl)
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F), contentColor = Color.Black),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Завантажити", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Пізніше", color = Color.Gray)
+            }
+        }
+    )
+}
+
 
