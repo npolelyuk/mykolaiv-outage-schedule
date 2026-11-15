@@ -1,0 +1,35 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*' # Срабатывает автоматически при создании тега, начинающегося с 'v' (например, v1.0.1)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew assembleDebug 
+        # Замените assembleDebug на assembleRelease, если у вас настроена подпись приложения ключом (Keystore)
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/build/outputs/apk/debug/app-debug.apk 
+          # Путь к скомпилированному APK файлу
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
